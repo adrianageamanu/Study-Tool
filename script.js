@@ -1,19 +1,38 @@
-/* ------------------------------
-   VARIABILE GLOBALE
---------------------------------*/
+// ==========================================
+// VARIABILE GLOBALE
+// ==========================================
 let soundEnabled = true;
 let mathScore = 0;
 let readingScore = 0;
 let colorsScore = 0;
+let writingScore = 0;
 
-const maxQuestions = 5; // doar pentru reading și colors
-let currentMathAnswer, currentWord, currentColor;
+const maxQuestions = 5; // pentru reading, colors, writing
 
-let mathInputMode = "buttons"; // buttons | input
+let currentMathAnswer, currentWord, currentColor, currentLetter;
+let mathInputMode = "buttons"; // 'buttons' | 'input'
 
-/* ----------------------------------
-   FUNCTII HELPER (Alesia)
------------------------------------*/
+// Culori (fără repetiție)
+let remainingColors = [];
+
+// Voice TTS
+let selectedVoice = null;
+
+// Speech recognition pentru culori
+let recognition;
+let isListening = false;
+
+// Canvas & scris
+let canvas, ctx, templateCanvas, templateCtx;
+let isDrawing = false;
+let drawingPoints = [];
+let templatePoints = [];
+let canvasInitialized = false;
+let availableLetters = [];
+
+// ==========================================
+// HELPER FUNCTIONS GENERALE
+// ==========================================
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -30,16 +49,16 @@ function normalizeText(str) {
         .trim();
 }
 
-/* ----------------------------------
-   NAVIGARE (comun)
------------------------------------*/
+// ==========================================
+// NAVIGARE
+// ==========================================
 function showSection(sectionId) {
-    document.querySelectorAll('.game-section, #menu')
-        .forEach(sec => sec.classList.add('hidden'));
+    document.querySelectorAll(".game-section, #menu")
+        .forEach(sec => sec.classList.add("hidden"));
 
-    document.getElementById(sectionId).classList.remove('hidden');
+    document.getElementById(sectionId).classList.remove("hidden");
 
-    if (sectionId === 'menu') {
+    if (sectionId === "menu") {
         speak("Meniu principal");
         resetScores();
     }
@@ -49,17 +68,24 @@ function startModule(moduleId) {
     showSection(moduleId);
     resetScores();
 
-    if (moduleId === 'math') {
-        speak("Hai să facem matematică!");
-        generateMathQuestion();
-    }
-    if (moduleId === 'reading') {
-        speak("Hai să citim cuvinte!");
-        generateWordQuestion();
-    }
-    if (moduleId === 'colors') {
-        speak("Hai să învățăm culori!");
-        generateColorQuestion();
+    switch (moduleId) {
+        case "math":
+            speak("Hai să facem matematică!");
+            generateMathQuestion();
+            break;
+        case "reading":
+            speak("Hai să citim cuvinte!");
+            generateWordQuestion();
+            break;
+        case "colors":
+            speak("Hai să învățăm culori!");
+            generateColorQuestion();
+            break;
+        case "writing":
+            speak("Hai să învățăm să scriem litere!");
+            if (!canvasInitialized) initializeWritingCanvas();
+            generateWritingExercise();
+            break;
     }
 }
 
@@ -67,23 +93,25 @@ function resetScores() {
     mathScore = 0;
     readingScore = 0;
     colorsScore = 0;
+    writingScore = 0;
 
     updateProgress("math", 0);
     updateProgress("reading", 0);
     updateProgress("colors", 0);
+    updateProgress("writing", 0);
 
     updateStars("math", 0);
     updateStars("reading", 0);
     updateStars("colors", 0);
+    updateStars("writing", 0);
 
-    remainingColors = shuffle([...colors]); // pentru culori fără repetiții
+    remainingColors = shuffle([...colors]);
+    availableLetters = [...letters];
 }
 
-/* ----------------------------------
-   TEXT TO SPEECH (Alesia – voce bună)
------------------------------------*/
-let selectedVoice = null;
-
+// ==========================================
+// TEXT-TO-SPEECH (Alesia - voce îmbunătățită)
+// ==========================================
 const preferredVoices = [
     "Microsoft Andrei",
     "Microsoft Irina",
@@ -104,8 +132,9 @@ function loadVoices() {
     }
 
     if (!selectedVoice) {
-        selectedVoice = voices.find(v => v.lang === "ro-RO") ||
-                        voices.find(v => v.lang.startsWith("ro"));
+        selectedVoice =
+            voices.find(v => v.lang === "ro-RO") ||
+            voices.find(v => v.lang && v.lang.startsWith("ro"));
     }
 }
 
@@ -121,7 +150,9 @@ function speak(text) {
     u.rate = 0.85;
     u.pitch = 1.0;
 
-    if (selectedVoice) u.voice = selectedVoice;
+    if (selectedVoice) {
+        u.voice = selectedVoice;
+    }
 
     window.speechSynthesis.speak(u);
 }
@@ -132,11 +163,11 @@ function toggleSound() {
         soundEnabled ? "🔊 Sunet: ON" : "🔇 Sunet: OFF";
 }
 
-/* ----------------------------------
-   MATEMATICĂ (varianta ADRIANA)
------------------------------------*/
+// ==========================================
+// MATEMATICĂ (varianta Adrianei - nelimitat + input)
+// ==========================================
 function toggleMathMode() {
-    mathInputMode = (mathInputMode === "buttons") ? "input" : "buttons";
+    mathInputMode = mathInputMode === "buttons" ? "input" : "buttons";
     document.getElementById("math-mode-toggle").innerText =
         mathInputMode === "buttons"
             ? " Scrie răspunsul"
@@ -148,11 +179,11 @@ function generateMathQuestion() {
     const feedback = document.getElementById("math-feedback");
     feedback.innerText = "";
     feedback.className = "feedback";
+
     document.getElementById("math-next").classList.add("hidden");
 
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
-
     currentMathAnswer = num1 + num2;
 
     document.getElementById("math-question").innerText =
@@ -178,7 +209,6 @@ function generateMathQuestion() {
                 if (e.key === "Enter") checkMathInput();
             });
         }, 100);
-
     } else {
         const wrongs = new Set();
         const offsets = [-3, -2, -1, 1, 2, 3];
@@ -186,7 +216,7 @@ function generateMathQuestion() {
         for (const off of offsets) {
             if (wrongs.size >= 2) break;
             const w = currentMathAnswer + off;
-            if (w > 0) wrongs.add(w);
+            if (w > 0 && w !== currentMathAnswer) wrongs.add(w);
         }
 
         while (wrongs.size < 2) {
@@ -203,9 +233,7 @@ function generateMathQuestion() {
 }
 
 function checkMathInput() {
-    const inp = document.getElementById("math-input");
-    const val = parseInt(inp.value);
-
+    const val = parseInt(document.getElementById("math-input").value);
     if (isNaN(val)) {
         speak("Te rog introdu un număr!");
         return;
@@ -232,13 +260,16 @@ function checkMath(answer) {
         feedback.innerText = `💪 Mai încearcă! (${answer})`;
         speak("Mai încearcă încă o dată!");
         const inp = document.getElementById("math-input");
-        if (inp) { inp.value = ""; inp.focus(); }
+        if (inp) {
+            inp.value = "";
+            inp.focus();
+        }
     }
 }
 
-/* ----------------------------------
-   CUVINTE (comun)
------------------------------------*/
+// ==========================================
+// CUVINTE (reading)
+// ==========================================
 const words = [
     { word: "CASĂ", image: "🏠", sound: "casă" },
     { word: "PISICĂ", image: "🐱", sound: "pisică" },
@@ -256,6 +287,7 @@ function generateWordQuestion() {
     const fb = document.getElementById("reading-feedback");
     fb.innerText = "";
     fb.className = "feedback";
+
     document.getElementById("reading-next").classList.add("hidden");
 
     currentWord = words[Math.floor(Math.random() * words.length)];
@@ -297,24 +329,24 @@ function checkWord(selected) {
     }
 }
 
-/* ----------------------------------
-   CULORI (varianta ALESIA)
------------------------------------*/
+// ==========================================
+// CULORI (varianta Alesia + voce + fără repetiții)
+// ==========================================
 const colors = [
-    { name: 'ROȘU', hex: '#FF0000', sound: 'roșu' },
-    { name: 'ALBASTRU', hex: '#0000FF', sound: 'albastru' },
-    { name: 'VERDE', hex: '#00FF00', sound: 'verde' },
-    { name: 'GALBEN', hex: '#FFFF00', sound: 'galben' },
-    { name: 'PORTOCALIU', hex: '#FF8800', sound: 'portocaliu' },
-    { name: 'ROZ', hex: '#FF69B4', sound: 'roz' },
-    { name: 'VIOLET', hex: '#9370DB', sound: 'violet' },
-    { name: 'NEGRU', hex: '#000000', sound: 'negru' },
-    { name: 'ALB', hex: '#FFFFFF', sound: 'alb' },
-    { name: 'GRI', hex: '#808080', sound: 'gri' },
-    { name: 'MARO', hex: '#8B4513', sound: 'maro' }
+    { name: "ROȘU", hex: "#FF0000", sound: "roșu" },
+    { name: "ALBASTRU", hex: "#0000FF", sound: "albastru" },
+    { name: "VERDE", hex: "#00FF00", sound: "verde" },
+    { name: "GALBEN", hex: "#FFFF00", sound: "galben" },
+    { name: "PORTOCALIU", hex: "#FF8800", sound: "portocaliu" },
+    { name: "ROZ", hex: "#FF69B4", sound: "roz" },
+    { name: "VIOLET", hex: "#9370DB", sound: "violet" },
+    { name: "NEGRU", hex: "#000000", sound: "negru" },
+    { name: "ALB", hex: "#FFFFFF", sound: "alb" },
+    { name: "GRI", hex: "#808080", sound: "gri" },
+    { name: "MARO", hex: "#8B4513", sound: "maro" }
 ];
 
-let remainingColors = shuffle([...colors]);
+remainingColors = shuffle([...colors]);
 
 function generateColorQuestion() {
     if (colorsScore >= maxQuestions) return showCompletion("colors");
@@ -322,10 +354,12 @@ function generateColorQuestion() {
     const fb = document.getElementById("colors-feedback");
     fb.innerText = "";
     fb.className = "feedback";
+
     document.getElementById("colors-next").classList.add("hidden");
 
-    if (remainingColors.length === 0)
+    if (!remainingColors.length) {
         remainingColors = shuffle([...colors]);
+    }
 
     currentColor = remainingColors.shift();
 
@@ -373,24 +407,21 @@ function validateColorAnswer(answerRaw) {
     }
 }
 
-/* ----------------------------------
-   RECOGNITION (Alesia)
------------------------------------*/
-let recognition;
-let isListening = false;
-
+// ==========================================
+// SPEECH RECOGNITION - Alesia (culori)
+// ==========================================
 function setupSpeechRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
 
     recognition = new SR();
-    recognition.lang = 'ro-RO';
+    recognition.lang = "ro-RO";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = e => {
-        const spoken = e.results[0][0].transcript;
-        validateColorAnswer(spoken);
+        const txt = e.results[0][0].transcript;
+        validateColorAnswer(txt);
     };
 
     recognition.onerror = () => {
@@ -405,10 +436,11 @@ function setupSpeechRecognition() {
     };
 }
 
-window.addEventListener("load", setupSpeechRecognition);
-
 function startColorVoiceInput() {
-    if (!recognition) return alert("Browserul nu suportă microfon.");
+    if (!recognition) {
+        alert("Browserul nu suportă recunoaștere vocală.");
+        return;
+    }
 
     if (!isListening) {
         isListening = true;
@@ -428,11 +460,325 @@ function updateVoiceButton() {
     btn.innerText = isListening ? "⏹ Oprește microfonul" : "🎤 Spune culoarea";
 }
 
-/* ----------------------------------
-   UTILITATI GENERALE
------------------------------------*/
+// ==========================================
+// MODUL SCRIS (writing) – CIPRIAN
+// ==========================================
+const letters = [
+    { char: 'A', sound: 'A' }, { char: 'Ă', sound: 'Ă' },
+    { char: 'Â', sound: 'Â din a' }, { char: 'B', sound: 'B' },
+    { char: 'C', sound: 'C' }, { char: 'D', sound: 'D' },
+    { char: 'E', sound: 'E' }, { char: 'F', sound: 'F' },
+    { char: 'G', sound: 'G' }, { char: 'H', sound: 'H' },
+    { char: 'I', sound: 'I' }, { char: 'Î', sound: 'Î din i' },
+    { char: 'J', sound: 'J' }, { char: 'K', sound: 'K' },
+    { char: 'L', sound: 'L' }, { char: 'M', sound: 'M' },
+    { char: 'N', sound: 'N' }, { char: 'O', sound: 'O' },
+    { char: 'P', sound: 'P' }, { char: 'Q', sound: 'Q' },
+    { char: 'R', sound: 'R' }, { char: 'S', sound: 'S' },
+    { char: 'Ș', sound: 'Ș' }, { char: 'T', sound: 'T' },
+    { char: 'Ț', sound: 'Ț' }, { char: 'U', sound: 'U' },
+    { char: 'V', sound: 'V' }, { char: 'W', sound: 'W' },
+    { char: 'X', sound: 'X' }, { char: 'Y', sound: 'Y' },
+    { char: 'Z', sound: 'Z' }
+];
+
+function initializeWritingCanvas() {
+    canvas = document.getElementById("writing-canvas");
+    templateCanvas = document.getElementById("template-canvas");
+
+    if (!canvas || !templateCanvas) return;
+
+    ctx = canvas.getContext("2d");
+    templateCtx = templateCanvas.getContext("2d");
+
+    const container = document.querySelector(".canvas-container");
+    const size = Math.min(container.clientWidth, container.clientHeight, 600);
+
+    canvas.width = templateCanvas.width = size;
+    canvas.height = templateCanvas.height = size;
+
+    // Mouse events
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDrawing);
+    canvas.addEventListener("mouseleave", stopDrawing);
+
+    // Touch events
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    canvas.addEventListener("touchend", stopDrawing);
+
+    document.getElementById("clear-btn").onclick = clearCanvas;
+    document.getElementById("hint-btn").onclick = showHint;
+    document.getElementById("check-writing-btn").onclick = checkWriting;
+
+    canvasInitialized = true;
+}
+
+function generateWritingExercise() {
+    if (writingScore >= maxQuestions) return showCompletion("writing");
+
+    if (availableLetters.length === 0)
+        availableLetters = [...letters];
+
+    const index = Math.floor(Math.random() * availableLetters.length);
+    currentLetter = availableLetters.splice(index, 1)[0];
+
+    clearCanvas();
+    document.getElementById("writing-feedback").innerText = "";
+    document.getElementById("writing-feedback").className = "feedback";
+    document.getElementById("writing-next").classList.add("hidden");
+    document.getElementById("accuracy-display").classList.add("hidden");
+
+    document.getElementById("current-letter").innerText =
+        `Scrie litera: ${currentLetter.char}`;
+    speak(`Hai să scriem litera ${currentLetter.sound}`);
+
+    drawLetterTemplate(currentLetter.char);
+}
+
+function drawLetterTemplate(letter) {
+    templateCtx.clearRect(0, 0, templateCanvas.width, templateCanvas.height);
+    templatePoints = [];
+
+    const fontSize = Math.floor(templateCanvas.width * 0.7);
+    templateCtx.font = `bold ${fontSize}px Arial`;
+    templateCtx.fillStyle = "rgba(100,100,255,0.15)";
+    templateCtx.textAlign = "center";
+    templateCtx.textBaseline = "middle";
+
+    const cx = templateCanvas.width / 2;
+    const cy = templateCanvas.height / 2;
+
+    templateCtx.fillText(letter, cx, cy);
+    templateCtx.strokeStyle = "#4CAF50";
+    templateCtx.lineWidth = 8;
+    templateCtx.strokeText(letter, cx, cy);
+
+    const img = templateCtx.getImageData(0, 0, templateCanvas.width, templateCanvas.height);
+
+    for (let y = 0; y < img.height; y += 5) {
+        for (let x = 0; x < img.width; x += 5) {
+            const idx = (y * img.width + x) * 4;
+            if (img.data[idx + 3] > 128) {
+                templatePoints.push({ x, y });
+            }
+        }
+    }
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    drawingPoints.push({ x, y });
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+
+    ctx.strokeStyle = "#2196F3";
+    ctx.lineWidth = 15;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    drawingPoints.push({ x, y });
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    startDrawing(e.touches[0]);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    draw(e.touches[0]);
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawingPoints = [];
+    document.getElementById("accuracy-display").classList.add("hidden");
+}
+
+function showHint() {
+    speak("Începe de sus și urmărește conturul literei");
+
+    let flashes = 0;
+    const flashInterval = setInterval(() => {
+        templateCanvas.style.opacity = (flashes % 2 === 0) ? "0.3" : "1";
+        flashes++;
+        if (flashes > 5) {
+            clearInterval(flashInterval);
+            templateCanvas.style.opacity = "1";
+        }
+    }, 300);
+}
+
+// ==========================================
+// *** ALGORITMI PENTRU ACURATEȚE ***
+// ==========================================
+function euclideanDistance(a, b) {
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+function resamplePoints(points, count) {
+    if (points.length < 2) return points;
+    let total = 0;
+    const dists = [0];
+
+    for (let i = 1; i < points.length; i++) {
+        total += euclideanDistance(points[i], points[i - 1]);
+        dists.push(total);
+    }
+
+    const step = total / (count - 1);
+    const newPoints = [points[0]];
+    let target = step;
+
+    for (let i = 1; i < points.length; i++) {
+        while (target <= dists[i]) {
+            const ratio = (target - dists[i - 1]) / (dists[i] - dists[i - 1]);
+            newPoints.push({
+                x: points[i - 1].x + ratio * (points[i].x - points[i - 1].x),
+                y: points[i - 1].y + ratio * (points[i].y - points[i - 1].y),
+            });
+            target += step;
+        }
+    }
+
+    return newPoints;
+}
+
+function calculateAccuracy() {
+    if (drawingPoints.length < 10) return 0;
+
+    const sampleCanvas = Math.max(canvas.width, canvas.height);
+
+    // 1. Validity: punctele sunt pe contur?
+    let valid = 0;
+    for (let p of drawingPoints) {
+        let minD = Infinity;
+        for (let t of templatePoints) {
+            const d = euclideanDistance(p, t);
+            if (d < minD) minD = d;
+        }
+        if (minD < 60) valid++;
+    }
+    const validityScore = (valid / drawingPoints.length) * 100;
+
+    // 2. Coverage: cât din literă a fost atinsă?
+    let covered = 0;
+    for (let t of templatePoints) {
+        for (let p of drawingPoints) {
+            if (euclideanDistance(t, p) < 55) {
+                covered++;
+                break;
+            }
+        }
+    }
+    let coverageScore = (covered / templatePoints.length) * 100;
+    coverageScore = Math.min(100, coverageScore * 1.1);
+
+    // 3. Form similarity (simplificat)
+    const sampleDraw = resamplePoints(drawingPoints, 40);
+    const sampleTemp = resamplePoints(templatePoints, 40);
+
+    let sum = 0;
+    for (let i = 0; i < sampleDraw.length; i++) {
+        sum += euclideanDistance(sampleDraw[i], sampleTemp[i]);
+    }
+    const avg = sum / sampleDraw.length;
+    const formScore = Math.max(0, 100 - (avg / sampleCanvas) * 150);
+
+    // SCOR FINAL PONDERAT
+    let finalScore =
+        validityScore * 0.20 +
+        coverageScore * 0.45 +
+        formScore * 0.35;
+
+    if (coverageScore > 70) finalScore += 10;
+
+    return Math.min(100, Math.max(0, finalScore));
+}
+
+function checkWriting() {
+    const feedback = document.getElementById("writing-feedback");
+
+    if (drawingPoints.length < 10) {
+        feedback.className = "feedback error";
+        feedback.innerText = "✏️ Desenează litera pe canvas!";
+        speak("Trebuie să desenezi litera.");
+        return;
+    }
+
+    const acc = calculateAccuracy();
+    displayAccuracy(acc);
+
+    if (acc >= 70) {
+        feedback.className = "feedback success";
+        feedback.innerText = "🎉 Excelent!";
+        speak("Bravo! Ai scris foarte frumos!");
+        writingScore++;
+        updateProgress("writing", writingScore);
+        updateStars("writing", writingScore);
+        showCelebration("✏️");
+        document.getElementById("writing-next").classList.remove("hidden");
+    } else if (acc >= 50) {
+        feedback.className = "feedback success";
+        feedback.innerText = "👍 Bine! Mai încearcă!";
+        speak("Bine! Mai încearcă puțin!");
+    } else {
+        feedback.className = "feedback error";
+        feedback.innerText = "💪 Mai încearcă! Urmărește conturul!";
+        speak("Mai încearcă!");
+    }
+}
+
+function displayAccuracy(acc) {
+    const box = document.getElementById("accuracy-display");
+    const circ = document.getElementById("accuracy-circle");
+    const pct = document.getElementById("accuracy-percentage");
+    const msg = document.getElementById("accuracy-message");
+
+    box.classList.remove("hidden");
+    pct.innerText = Math.round(acc) + "%";
+
+    circ.className = "";
+    circ.classList.add(
+        acc >= 85 ? "excellent" :
+        acc >= 70 ? "good" :
+        acc >= 50 ? "fair" :
+                    "poor"
+    );
+
+    msg.innerText =
+        acc >= 85 ? "🌟 Extraordinar!" :
+        acc >= 70 ? "👍 Foarte bine!" :
+        acc >= 50 ? "💪 Mai exersează!" :
+                    "🎯 Mai încearcă!";
+}
+
+// ==========================================
+// UTILITĂȚI FINALE
+// ==========================================
 function updateProgress(module, score) {
     const el = document.getElementById(`${module}-progress`);
+    if (!el) return;
 
     if (module === "math") {
         el.style.width = "100%";
@@ -445,35 +791,37 @@ function updateProgress(module, score) {
 }
 
 function updateStars(module, score) {
-    document.getElementById(`${module}-stars`).innerHTML = "⭐".repeat(score);
+    document.getElementById(`${module}-stars`).innerHTML =
+        "⭐".repeat(score);
 }
 
 function showCelebration(emoji) {
-    const c = document.createElement("div");
-    c.className = "celebration";
-    c.innerText = emoji;
-    document.body.appendChild(c);
-    setTimeout(() => c.remove(), 1000);
+    const div = document.createElement("div");
+    div.className = "celebration";
+    div.innerText = emoji;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 1000);
 }
 
 function showCompletion(module) {
     const msgs = {
         math: "Felicitări! Ești un campion! 🏆",
         reading: "Grozav! Citești minunat! 🏆",
-        colors: "Fantastic! Cunoști culorile! 🏆"
+        colors: "Fantastic! Cunoști culorile! 🏆",
+        writing: "Excelent! Scrii foarte frumos! 🏆"
     };
 
     const fb = document.getElementById(`${module}-feedback`);
     fb.className = "feedback success";
-    fb.innerHTML = `<div style="font-size:3rem;">🏆</div>${msgs[module]}`;
-
+    fb.innerHTML = `<div style="font-size:3rem">🏆</div>${msgs[module]}`;
     speak(msgs[module]);
     showCelebration("🏆");
 
     setTimeout(() => {
-        if (confirm("Vrei să joci din nou?"))
+        if (confirm("Vrei să joci din nou?")) {
             startModule(module);
-        else
+        } else {
             showSection("menu");
+        }
     }, 3000);
 }

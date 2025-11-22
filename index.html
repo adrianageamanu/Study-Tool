@@ -9,33 +9,40 @@
 <body>
 
     <header>
-        <button id="home-btn" onclick="showSection('menu')">🏠 Acasă</button>
+        <button id="home-btn">🏠 Acasă</button>
         <h1>Învață cu Bucurie ✨</h1>
-        <button id="tts-toggle" onclick="toggleSound()">🔊 Sunet: ON</button>
+        <button id="tts-toggle">🔊 Sunet: ON</button>
     </header>
 
     <main id="app-container">
         
+        <!-- MENIU PRINCIPAL -->
         <section id="menu" class="active-section">
             <div class="card-container">
-                <div class="card" onclick="startModule('math')">
+                <div class="card" data-module="math">
                     <div class="icon">🔢</div>
                     <h3>Matematică</h3>
                     <p>Învață să numeri!</p>
                 </div>
-                <div class="card" onclick="startModule('reading')">
+                <div class="card" data-module="reading">
                     <div class="icon">📚</div>
                     <h3>Cuvinte</h3>
                     <p>Citește și învață!</p>
                 </div>
-                <div class="card" onclick="startModule('colors')">
+                <div class="card" data-module="colors">
                     <div class="icon">🎨</div>
                     <h3>Culori</h3>
                     <p>Descoperă culorile!</p>
                 </div>
+                <div class="card" data-module="writing">
+                    <div class="icon">✏️</div>
+                    <h3>Scris</h3>
+                    <p>Învață să scrii!</p>
+                </div>
             </div>
         </section>
 
+        <!-- MODUL MATEMATICĂ -->
         <section id="math" class="game-section hidden">
             <h2>Adună numerele! 🔢</h2>
             <div class="stars" id="math-stars"></div>
@@ -53,10 +60,11 @@
                 <div id="math-question" class="big-text"></div>
                 <div class="options" id="math-options"></div>
                 <p id="math-feedback" class="feedback"></p>
-                <button class="next-btn hidden" id="math-next" onclick="generateMathQuestion()">Următorul ➡️</button>
+                <button class="next-btn hidden" id="math-next">Următorul ➡️</button>
             </div>
         </section>
 
+        <!-- MODUL CUVINTE -->
         <section id="reading" class="game-section hidden">
             <h2>Citește cuvântul! 📚</h2>
             <div class="stars" id="reading-stars"></div>
@@ -67,10 +75,11 @@
                 <div id="word-display" class="word-display"></div>
                 <div class="options" id="word-options"></div>
                 <p id="reading-feedback" class="feedback"></p>
-                <button class="next-btn hidden" id="reading-next" onclick="generateWordQuestion()">Următorul ➡️</button>
+                <button class="next-btn hidden" id="reading-next">Următorul ➡️</button>
             </div>
         </section>
 
+        <!-- MODUL CULORI -->
         <section id="colors" class="game-section hidden">
             <h2>Alege culoarea potrivită! 🎨</h2>
             <div class="stars" id="colors-stars"></div>
@@ -83,8 +92,43 @@
                 <div class="options" id="color-options"></div>
                 <button id="voice-btn" onclick="startColorVoiceInput()">🎤 Spune culoarea</button>
                 <p id="colors-feedback" class="feedback"></p>
-                <button class="next-btn hidden" id="colors-next" onclick="generateColorQuestion()">Următorul ➡️</button>
+                <button class="next-btn hidden" id="colors-next">Următorul ➡️</button>
             </div>
+        </section>
+
+        <!-- MODUL SCRIS (NOU) -->
+        <section id="writing" class="game-section hidden">
+            <h2>Învață să scrii! ✏️</h2>
+            <div class="stars" id="writing-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="writing-progress" style="width: 0%">0/5</div>
+            </div>
+            
+            <div class="writing-instructions">
+                <p class="big-text" id="current-letter"></p>
+                <p>Urmărește conturul cu mouse-ul sau degetul!</p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="writing-canvas"></canvas>
+                <canvas id="template-canvas"></canvas>
+            </div>
+
+            <div class="writing-controls">
+                <button id="clear-btn" class="control-btn">🗑️ Șterge</button>
+                <button id="hint-btn" class="control-btn">💡 Arată direcția</button>
+                <button id="check-writing-btn" class="control-btn primary">✅ Verifică</button>
+            </div>
+
+            <div class="accuracy-display hidden" id="accuracy-display">
+                <div class="accuracy-circle" id="accuracy-circle">
+                    <span id="accuracy-percentage">0%</span>
+                </div>
+                <p id="accuracy-message"></p>
+            </div>
+
+            <p id="writing-feedback" class="feedback"></p>
+            <button class="next-btn hidden" id="writing-next">Următoarea literă ➡️</button>
         </section>
 
     </main>
