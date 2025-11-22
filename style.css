@@ -72,20 +72,26 @@ button:active {
 .card-container {
     display: flex;
     justify-content: center;
-    gap: 30px;
-    padding: 40px 20px;
+    align-items: center;
+    gap: 40px;
+    padding: 60px 20px;
     flex-wrap: wrap;
 }
 
 .card {
     background: white;
-    border: 5px solid #ddd;
-    border-radius: 25px;
-    padding: 40px 30px;
-    width: 200px;
+    border: 6px solid #ddd;
+    border-radius: 30px;
+    padding: 50px 40px;
+    width: 260px;
+    height: 260px;
     cursor: pointer;
     transition: all 0.4s;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .card:hover {
@@ -112,11 +118,12 @@ button:active {
 
 .game-section {
     background: white;
-    border-radius: 25px;
-    padding: 40px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    margin: 20px auto;
-    max-width: 900px;
+    border-radius: 35px;
+    padding: 60px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    margin: 40px auto;
+    max-width: 1100px;
+    width: 90%;
 }
 
 .game-section h2 {
@@ -144,11 +151,12 @@ button:active {
 .options button {
     background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
     color: white;
-    font-size: 2.5rem;
-    margin: 10px;
-    min-width: 120px;
-    min-height: 100px;
-    border-radius: 20px;
+    font-size: 3rem;
+    padding: 25px 40px;
+    margin: 15px;
+    min-width: 150px;
+    min-height: 130px;
+    border-radius: 25px;
 }
 
 .options button:hover {
@@ -242,14 +250,17 @@ button:active {
 }
 
 .canvas-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     position: relative;
-    width: 600px;
-    height: 600px;
-    margin: 30px auto;
-    border: 5px solid #333;
-    border-radius: 20px;
+    width: 700px;
+    height: 700px;
+    margin: 40px auto;
+    border: 6px solid #333;
+    border-radius: 30px;
     background: white;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.3);
     overflow: hidden;
 }
 
@@ -386,41 +397,84 @@ button:active {
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-    .big-text { font-size: 3rem; }
-    .word-display { font-size: 4rem; }
-    .color-box { width: 200px; height: 200px; }
-    .options button { font-size: 1.8rem; min-width: 90px; min-height: 80px; }
-    
+    .card {
+        width: 200px;
+        height: 200px;
+    }
+
     .canvas-container {
-        width: 90vw;
-        height: 90vw;
+        width: 95vw;
+        height: 95vw;
         max-width: 500px;
         max-height: 500px;
     }
-    
-    .writing-controls {
-        flex-direction: column;
-        gap: 10px;
+
+    .options button {
+        font-size: 2.2rem;
+        min-width: 120px;
+        min-height: 100px;
     }
-    
-    .control-btn {
-        width: 90%;
-        max-width: 300px;
-    }
-    
-    .accuracy-circle {
-        width: 150px;
-        height: 150px;
-    }
-    
-    #accuracy-percentage {
-        font-size: 3rem;
+
+    .game-section {
+        padding: 30px;
     }
 }
 
 @media (max-width: 480px) {
-    header h1 { font-size: 1.3rem; }
-    .game-section { padding: 20px; }
-    .card { width: 150px; padding: 30px 20px; }
-    .icon { font-size: 3rem; }
+    .card {
+        width: 170px;
+        height: 170px;
+    }
+
+    .options button {
+        font-size: 1.8rem;
+        min-width: 100px;
+        min-height: 90px;
+    }
+}
+
+/* ======== PROGRES GLOBAL ======== */
+
+#global-progress-wrapper {
+    position: sticky;
+    width: 100%;
+    padding: 10px 0;
+    background: rgba(255,255,255,0.3);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    top: 70px; /* sub header */
+    z-index: 999;
+}
+
+#global-progress-bar {
+    width: 80%;
+    max-width: 600px;
+    height: 25px;
+    background: #ddd;
+    border-radius: 15px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+    overflow: hidden;
+    position: relative; /* IMPORTANT pentru textul centrat */
+}
+#global-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    transition: width 0.4s ease-in-out;
+    display: block !important;
+    color: transparent !important;
+}
+
+#global-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: black;
+    text-shadow: 0 0 4px white;
+    pointer-events: none;
+    z-index: 1000;
 }

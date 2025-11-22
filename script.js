@@ -1,5 +1,16 @@
 // ==========================================
-// VARIABILE GLOBALE
+// PROGRES GLOBAL (timp, corectitudine, memorie scurtă/lungă)
+// ==========================================
+let memoryShort = 0;     // memorie pe termen scurt (0-100)
+let memoryLong = 0;      // memorie pe termen lung (0-100)
+let globalProgress = 0;   // progres global agregat (0-100)
+
+let startTime = performance.now(); // momentul ultimei întrebări
+let recentAnswers = [];            // ultimele răspunsuri corecte/greșite (true/false)
+let conceptMemory = {};            // memorie pe termen lung per conceptId
+
+// ==========================================
+// VARIABILE GLOBALE JOC
 // ==========================================
 let soundEnabled = true;
 let mathScore = 0;
@@ -9,7 +20,8 @@ let writingScore = 0;
 
 const maxQuestions = 5; // pentru reading, colors, writing
 
-let currentMathAnswer, currentWord, currentColor, currentLetter;
+let currentMathAnswer, currentMathNum1, currentMathNum2;
+let currentWord, currentColor, currentLetter;
 let mathInputMode = "buttons"; // 'buttons' | 'input'
 
 // Culori (fără repetiție)
@@ -47,6 +59,10 @@ function normalizeText(str) {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
+}
+
+function startTimer() {
+    startTime = performance.now();
 }
 
 // ==========================================
@@ -164,7 +180,7 @@ function toggleSound() {
 }
 
 // ==========================================
-// MATEMATICĂ (varianta Adrianei - nelimitat + input)
+// MATEMATICĂ (nelimitat + input / butoane)
 // ==========================================
 function toggleMathMode() {
     mathInputMode = mathInputMode === "buttons" ? "input" : "buttons";
@@ -182,16 +198,17 @@ function generateMathQuestion() {
 
     document.getElementById("math-next").classList.add("hidden");
 
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    currentMathAnswer = num1 + num2;
+    currentMathNum1 = Math.floor(Math.random() * 10) + 1;
+    currentMathNum2 = Math.floor(Math.random() * 10) + 1;
+    currentMathAnswer = currentMathNum1 + currentMathNum2;
 
     document.getElementById("math-question").innerText =
-        `${num1} + ${num2} = ?`;
+        `${currentMathNum1} + ${currentMathNum2} = ?`;
 
-    speak(`Cât face ${num1} plus ${num2}?`);
+    speak(`Cât face ${currentMathNum1} plus ${currentMathNum2}?`);
 
     const container = document.getElementById("math-options");
+    startTimer(); // pornește cronometrul pentru această întrebare
 
     if (mathInputMode === "input") {
         container.innerHTML = `
@@ -244,6 +261,12 @@ function checkMathInput() {
 function checkMath(answer) {
     const feedback = document.getElementById("math-feedback");
     const correct = answer === currentMathAnswer;
+
+    // actualizăm progresul global (memorie, timp, corectitudine)
+    updateGlobalProgress(
+        correct,
+        `MATH:${currentMathNum1}+${currentMathNum2}`
+    );
 
     feedback.className = `feedback ${correct ? "success" : "error"}`;
 
@@ -303,6 +326,8 @@ function generateWordQuestion() {
         if (!options.includes(r)) options.push(r);
     }
 
+    startTimer(); // pornește cronometrul pentru această întrebare
+
     document.getElementById("word-options").innerHTML =
         shuffle(options).map(o =>
             `<button onclick="checkWord('${o.word}')">${o.image}</button>`
@@ -311,8 +336,11 @@ function generateWordQuestion() {
 
 function checkWord(selected) {
     const fb = document.getElementById("reading-feedback");
+    const isCorrect = (selected === currentWord.word);
 
-    if (selected === currentWord.word) {
+    updateGlobalProgress(isCorrect, `WORD:${currentWord.word}`);
+
+    if (isCorrect) {
         fb.className = "feedback success";
         fb.innerText = `🎉 Este ${currentWord.sound}!`;
         speak(`Bravo! Este ${currentWord.sound}!`);
@@ -330,7 +358,7 @@ function checkWord(selected) {
 }
 
 // ==========================================
-// CULORI (varianta Alesia + voce + fără repetiții)
+// CULORI (Alesia + voce + fără repetiții)
 // ==========================================
 const colors = [
     { name: "ROȘU", hex: "#FF0000", sound: "roșu" },
@@ -374,6 +402,8 @@ function generateColorQuestion() {
         if (!options.includes(r)) options.push(r);
     }
 
+    startTimer(); // pornește cronometrul pentru această întrebare
+
     document.getElementById("color-options").innerHTML =
         shuffle(options).map(o =>
             `<button onclick="checkColor('${o.name}')">${o.name}</button>`
@@ -389,8 +419,11 @@ function validateColorAnswer(answerRaw) {
 
     const a = normalizeText(answerRaw);
     const c = normalizeText(currentColor.name);
+    const isCorrect = (a === c);
 
-    if (a === c) {
+    updateGlobalProgress(isCorrect, `COLOR:${currentColor.name}`);
+
+    if (isCorrect) {
         fb.className = "feedback success";
         fb.innerText = `🎉 Minunat! Este ${currentColor.sound}!`;
         speak(`Bravo! Este ${currentColor.sound}!`);
@@ -408,7 +441,7 @@ function validateColorAnswer(answerRaw) {
 }
 
 // ==========================================
-// SPEECH RECOGNITION - Alesia (culori)
+// SPEECH RECOGNITION - Culori
 // ==========================================
 function setupSpeechRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -492,10 +525,16 @@ function initializeWritingCanvas() {
     templateCtx = templateCanvas.getContext("2d");
 
     const container = document.querySelector(".canvas-container");
-    const size = Math.min(container.clientWidth, container.clientHeight, 600);
+    const size = Math.min(container.offsetWidth, container.offsetHeight);
+    canvas.style.width = size + "px";
+    canvas.style.height = size + "px";
+    templateCanvas.style.width = size + "px";
+    templateCanvas.style.height = size + "px";
 
-    canvas.width = templateCanvas.width = size;
-    canvas.height = templateCanvas.height = size;
+    canvas.width = size;
+    canvas.height = size;
+    templateCanvas.width = size;
+    templateCanvas.height = size;
 
     // Mouse events
     canvas.addEventListener("mousedown", startDrawing);
@@ -535,6 +574,7 @@ function generateWritingExercise() {
     speak(`Hai să scriem litera ${currentLetter.sound}`);
 
     drawLetterTemplate(currentLetter.char);
+    startTimer(); // pornește cronometrul pentru această literă
 }
 
 function drawLetterTemplate(letter) {
@@ -610,16 +650,20 @@ function stopDrawing() {
 }
 
 function clearCanvas() {
+    if (!ctx || !canvas) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawingPoints = [];
     document.getElementById("accuracy-display").classList.add("hidden");
-    
-    // 🔥 important: regenerăm template-ul pentru litera curentă
-    drawLetterTemplate(currentLetter.char);
 
-    // 🔥 resetăm feedback-ul
-    document.getElementById("writing-feedback").innerText = "";
-    document.getElementById("writing-feedback").className = "feedback";
+    // regenerăm template-ul pentru litera curentă
+    if (currentLetter) {
+        drawLetterTemplate(currentLetter.char);
+    }
+
+    // resetăm feedback-ul
+    const fb = document.getElementById("writing-feedback");
+    fb.innerText = "";
+    fb.className = "feedback";
 }
 
 function showHint() {
@@ -637,7 +681,7 @@ function showHint() {
 }
 
 // ==========================================
-// *** ALGORITMI PENTRU ACURATEȚE ***
+// ALGORITMI PENTRU ACURATEȚE SCRIS
 // ==========================================
 function euclideanDistance(a, b) {
     return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
@@ -674,8 +718,7 @@ function resamplePoints(points, count) {
 function calculateAccuracy() {
     if (drawingPoints.length < 10) return 0;
 
-    // Toleranță moderată
-    const tolerance = 40;
+    const tolerance = 40; // toleranță moderată
 
     // 1. COVERAGE (60%)
     let hitCount = 0;
@@ -690,7 +733,7 @@ function calculateAccuracy() {
     let coverageScore = (hitCount / templatePoints.length) * 100;
     coverageScore = Math.min(100, coverageScore);
 
-    // 2. MEAN DISTANCE TO TEMPLATE (40%)
+    // 2. MEAN DISTANCE (40%)
     let totalDist = 0;
     let count = 0;
 
@@ -724,9 +767,16 @@ function checkWriting() {
     }
 
     const acc = calculateAccuracy();
+    const isCorrect = (acc >= 70);
+
+    // Actualizăm progresul global (scris = concept litera curentă)
+    if (currentLetter) {
+        updateGlobalProgress(isCorrect, `WRITE:${currentLetter.char}`);
+    }
+
     displayAccuracy(acc);
 
-    if (acc >= 70) {
+    if (isCorrect) {
         feedback.className = "feedback success";
         feedback.innerText = "🎉 Excelent!";
         speak("Bravo! Ai scris foarte frumos!");
@@ -771,7 +821,7 @@ function displayAccuracy(acc) {
 }
 
 // ==========================================
-// UTILITĂȚI FINALE
+// PROGRES LOCAL (pe module) + CELEBRARE
 // ==========================================
 function updateProgress(module, score) {
     const el = document.getElementById(`${module}-progress`);
@@ -788,8 +838,9 @@ function updateProgress(module, score) {
 }
 
 function updateStars(module, score) {
-    document.getElementById(`${module}-stars`).innerHTML =
-        "⭐".repeat(score);
+    const el = document.getElementById(`${module}-stars`);
+    if (!el) return;
+    el.innerHTML = "⭐".repeat(score);
 }
 
 function showCelebration(emoji) {
@@ -809,8 +860,11 @@ function showCompletion(module) {
     };
 
     const fb = document.getElementById(`${module}-feedback`);
-    fb.className = "feedback success";
-    fb.innerHTML = `<div style="font-size:3rem">🏆</div>${msgs[module]}`;
+    if (fb) {
+        fb.className = "feedback success";
+        fb.innerHTML = `<div style="font-size:3rem">🏆</div>${msgs[module]}`;
+    }
+
     speak(msgs[module]);
     showCelebration("🏆");
 
@@ -824,9 +878,83 @@ function showCompletion(module) {
 }
 
 // ==========================================
+// LOGICĂ MEMORIE (scurtă / lungă) + PROGRES GLOBAL
+// ==========================================
+function updateShortTermMemory(isCorrect, responseTime) {
+    let delta = 0;
+
+    // timp
+    if (responseTime < 3) delta += 12;
+    else if (responseTime < 7) delta += 6;
+    else if (responseTime < 12) delta += 1;
+    else delta -= 6;
+
+    // corectitudine
+    delta += isCorrect ? 8 : -6;
+
+    // stabilitate (pattern în ultimele răspunsuri)
+    recentAnswers.push(isCorrect);
+    if (recentAnswers.length > 5) recentAnswers.shift();
+
+    // ultimele 5 sunt corecte → boost
+    if (recentAnswers.length === 5 && recentAnswers.every(a => a)) delta += 12;
+
+    // ultimele 3 sunt greșite → penalizare
+    if (recentAnswers.length >= 3 && recentAnswers.slice(-3).every(a => !a)) delta -= 12;
+
+    memoryShort = Math.max(0, Math.min(100, memoryShort + delta));
+}
+
+function updateLongTermMemory(isCorrect, conceptId) {
+    if (!conceptMemory[conceptId]) {
+        conceptMemory[conceptId] = { seen: 0, correct: 0 };
+    }
+
+    conceptMemory[conceptId].seen++;
+
+    let delta = 0;
+
+    if (isCorrect) {
+        conceptMemory[conceptId].correct++;
+        // învățare nouă
+        if (conceptMemory[conceptId].correct === 1) delta += 12;
+        // consolidare
+        else delta += 6;
+    } else {
+        delta -= 6;
+    }
+
+    memoryLong = Math.max(0, Math.min(100, memoryLong + delta));
+}
+
+function updateGlobalProgress(isCorrect, conceptId) {
+    const endTime = performance.now();
+    const responseTime = (endTime - startTime) / 1000; // secunde
+
+    updateShortTermMemory(isCorrect, responseTime);
+    updateLongTermMemory(isCorrect, conceptId);
+
+    const speedScore = Math.max(0, 100 - responseTime * 7); // mai repede = mai bine
+
+    globalProgress = Math.round(
+        0.30 * memoryShort +
+        0.30 * memoryLong +
+        0.20 * (isCorrect ? 100 : 0) +
+        0.10 * speedScore
+    );
+
+    globalProgress = Math.max(0, Math.min(100, globalProgress));
+
+    const fill = document.getElementById("global-progress-fill");
+    if (fill) {
+        fill.style.width = globalProgress + "%";
+        document.getElementById("global-progress-text").textContent = globalProgress + "%";
+    }
+}
+
+// ==========================================
 // INIT APP (BUTONALE + EVENIMENTE + MICROFON)
 // ==========================================
-
 window.addEventListener("load", () => {
     // Buton HOME
     document.getElementById("home-btn").addEventListener("click", () => {
@@ -852,4 +980,9 @@ window.addEventListener("load", () => {
 
     // Microfon culori
     setupSpeechRecognition();
+
+    // Inițializăm starea barei globale (dacă există în HTML)
+    const fill = document.getElementById("global-progress-fill");
+    fill.style.width = "0%";
+    fill.textContent = "0%";
 });
