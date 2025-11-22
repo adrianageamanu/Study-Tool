@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Învață cu Bucurie</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <button id="home-btn" onclick="showSection('menu')">🏠 Acasă</button>
+        <h1>Învață cu Bucurie</h1>
+        <button id="tts-toggle" onclick="toggleSound()">🔊 Sunet: ON</button>
+    </header>
+
+    <main id="app-container">
+        
+        <section id="menu" class="active-section">
+            <h2>Ce vrei să facem azi?</h2>
+            <div class="card-container">
+                <div class="card" onclick="startModule('math')">
+                    <div class="icon">1+2</div>
+                    <h3>Matematică</h3>
+                </div>
+                <div class="card" onclick="startModule('reading')">
+                    <div class="icon">ABC</div>
+                    <h3>Cuvinte</h3>
+                </div>
+                <div class="card" onclick="startModule('colors')">
+                    <div class="icon">🎨</div>
+                    <h3>Culori</h3>
+                </div>
+            </div>
+        </section>
+
+        <section id="math" class="game-section hidden">
+            <h2>Adună numerele!</h2>
+            <div class="game-area">
+                <div id="math-question" class="big-text">2 + 3 = ?</div>
+                <div class="options">
+                    <button onclick="checkMath(4)">4</button>
+                    <button onclick="checkMath(5)">5</button>
+                    <button onclick="checkMath(6)">6</button>
+                </div>
+                <p id="math-feedback" class="feedback"></p>
+            </div>
+        </section>
+
+        <section id="reading" class="game-section hidden">
+            <h2>Citește cuvintele</h2>
+            <p>Aici va fi jocul de cuvinte...</p>
+        </section>
+
+        <section id="colors" class="game-section hidden">
+            <h2>Alege culoarea</h2>
+            <p>Aici va fi jocul de culori...</p>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
