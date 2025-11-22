@@ -349,7 +349,10 @@ const colors = [
 remainingColors = shuffle([...colors]);
 
 function generateColorQuestion() {
-    if (colorsScore >= maxQuestions) return showCompletion("colors");
+    // ✅ dacă nu mai sunt culori rămase → modul complet
+    if (!remainingColors.length) {
+        return showCompletion("colors");
+    }
 
     const fb = document.getElementById("colors-feedback");
     fb.innerText = "";
@@ -357,10 +360,15 @@ function generateColorQuestion() {
 
     document.getElementById("colors-next").classList.add("hidden");
 
-    if (!remainingColors.length) {
-        remainingColors = shuffle([...colors]);
+    const voiceBtn = document.getElementById("voice-btn");
+    if (voiceBtn) {
+        voiceBtn.style.display = "inline-block"; // sau "block", cum vrei
     }
 
+    // ❗ NU mai re-umplem remainingColors aici
+    // if (!remainingColors.length) { ... } — asta se scoate
+
+    // luăm următoarea culoare din lista fără repetiție
     currentColor = remainingColors.shift();
 
     document.getElementById("color-box").style.backgroundColor = currentColor.hex;
@@ -380,17 +388,30 @@ function generateColorQuestion() {
         ).join("");
 }
 
-function checkColor(selected) {
-    validateColorAnswer(selected);
+function checkColor(selectedName) {
+    // găsim obiectul culorii alese
+    const chosenColor = colors.find(c => c.name === selectedName) || null;
+    validateColorAnswer(selectedName, chosenColor);
 }
 
-function validateColorAnswer(answerRaw) {
+function validateColorAnswer(answerRaw, chosenColor = null) {
     const fb = document.getElementById("colors-feedback");
+    const optionsContainer = document.getElementById("color-options");
+    const voiceBtn = document.getElementById("voice-btn");
 
     const a = normalizeText(answerRaw);
     const c = normalizeText(currentColor.name);
 
+    // după orice răspuns: ascundem opțiunile + butonul de voce
+    if (optionsContainer) {
+        optionsContainer.innerHTML = "";
+    }
+    if (voiceBtn) {
+        voiceBtn.style.display = "none";
+    }
+
     if (a === c) {
+        // ✅ RĂSPUNS CORECT
         fb.className = "feedback success";
         fb.innerText = `🎉 Minunat! Este ${currentColor.sound}!`;
         speak(`Bravo! Este ${currentColor.sound}!`);
@@ -399,11 +420,42 @@ function validateColorAnswer(answerRaw) {
         updateStars("colors", colorsScore);
         showCelebration("🎨");
         document.getElementById("colors-next").classList.remove("hidden");
-        document.getElementById("color-options").innerHTML = "";
     } else {
+        // ❌ RĂSPUNS GREȘIT – arătăm ce a ales și care era corect
         fb.className = "feedback error";
-        fb.innerText = "💪 Mai gândește-te!";
-        speak("Mai încearcă!");
+
+        const chosenNameText = chosenColor
+            ? chosenColor.sound
+            : answerRaw;
+
+        fb.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+                <div>❌ Ai ales: <strong>${chosenNameText}</strong></div>
+                ${
+                    chosenColor
+                        ? `<div style="
+                            width:70px;
+                            height:35px;
+                            border-radius:10px;
+                            border:2px solid #ccc;
+                            background:${chosenColor.hex};
+                          "></div>`
+                        : ""
+                }
+                <div>✅ Culoarea corectă este: <strong>${currentColor.sound}</strong></div>
+                <div style="
+                    width:70px;
+                    height:35px;
+                    border-radius:10px;
+                    border:2px solid #4CAF50;
+                    background:${currentColor.hex};
+                "></div>
+            </div>
+        `;
+
+        speak(`Nu e corect. Ai ales ${chosenNameText}, dar culoarea corectă este ${currentColor.sound}.`);
+
+        document.getElementById("colors-next").classList.remove("hidden");
     }
 }
 
@@ -780,6 +832,11 @@ function updateProgress(module, score) {
     if (module === "math") {
         el.style.width = "100%";
         el.innerText = score > 0 ? `Întrebarea #${score}` : "Start!";
+    } else if (module === "colors") {
+        const total = colors.length;
+        const pct = (score / total) * 100;
+        el.style.width = pct + "%";
+        el.innerText = `${score}/${total}`;
     } else {
         const pct = (score / maxQuestions) * 100;
         el.style.width = pct + "%";
