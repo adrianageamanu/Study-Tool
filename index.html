@@ -1,100 +1,86 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
-  <title>Aplicație CES</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Învață cu Bucurie</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Aplicația mea pentru copii cu CES</h1>
-  </header>
 
-  <main>
-    <section class="tile" onclick="openSection('rutina')">
-      <span class="tile-emoji">🕒</span>
-      <h2>Rutina mea</h2>
-      <button class="voice-btn" onclick="speak(event, 'Rutina mea')">🔊</button>
-    </section>
+    <header>
+        <button id="home-btn" onclick="showSection('menu')">🏠 Acasă</button>
+        <h1>Învață cu Bucurie ✨</h1>
+        <button id="tts-toggle" onclick="toggleSound()">🔊 Sunet: ON</button>
+    </header>
 
-    <section class="tile" onclick="openSection('jocuri')">
-      <span class="tile-emoji">🎮</span>
-      <h2>Jocuri ușoare</h2>
-      <button class="voice-btn" onclick="speak(event, 'Jocuri ușoare')">🔊</button>
-    </section>
+    <main id="app-container">
+        
+        <section id="menu" class="active-section">
+            <div class="card-container">
+                <div class="card" onclick="startModule('math')">
+                    <div class="icon">🔢</div>
+                    <h3>Matematică</h3>
+                    <p>Învață să numeri!</p>
+                </div>
+                <div class="card" onclick="startModule('reading')">
+                    <div class="icon">📚</div>
+                    <h3>Cuvinte</h3>
+                    <p>Citește și învață!</p>
+                </div>
+                <div class="card" onclick="startModule('colors')">
+                    <div class="icon">🎨</div>
+                    <h3>Culori</h3>
+                    <p>Descoperă culorile!</p>
+                </div>
+            </div>
+        </section>
 
-    <section class="tile" onclick="openSection('emotii')">
-      <span class="tile-emoji">💖</span>
-      <h2>Emoțiile mele</h2>
-      <button class="voice-btn" onclick="speak(event, 'Emoțiile mele')">🔊</button>
-    </section>
-  </main>
+        <section id="math" class="game-section hidden">
+            <h2>Adună numerele! 🔢</h2>
+            <div class="stars" id="math-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="math-progress" style="width: 0%">0/5</div>
+            </div>
+            <div class="game-area">
+                <div id="math-question" class="big-text"></div>
+                <div class="options" id="math-options"></div>
+                <p id="math-feedback" class="feedback"></p>
+                <button class="next-btn hidden" id="math-next" onclick="generateMathQuestion()">Următorul ➡️</button>
+            </div>
+        </section>
 
-  <!-- Secțiunea 1: Rutina mea -->
-  <section id="rutina" class="screen hidden">
-    <h2>Rutina mea</h2>
-    <div class="cards">
-      <div class="card">
-        <span>🌞</span>
-        <p>Mă trezesc</p>
-        <button onclick="speak(event, 'Mă trezesc')">🔊</button>
-      </div>
-      <div class="card">
-        <span>🎒</span>
-        <p>Merg la școală</p>
-        <button onclick="speak(event, 'Merg la școală')">🔊</button>
-      </div>
-      <div class="card">
-        <span>📚</span>
-        <p>Fac tema</p>
-        <button onclick="speak(event, 'Fac tema')">🔊</button>
-      </div>
-      <div class="card">
-        <span>😴</span>
-        <p>Merg la somn</p>
-        <button onclick="speak(event, 'Merg la somn')">🔊</button>
-      </div>
-    </div>
-    <button class="back-btn" onclick="goHome()">Înapoi</button>
-  </section>
+        <section id="reading" class="game-section hidden">
+            <h2>Citește cuvântul! 📚</h2>
+            <div class="stars" id="reading-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="reading-progress" style="width: 0%">0/5</div>
+            </div>
+            <div class="game-area">
+                <div id="word-display" class="word-display"></div>
+                <div class="options" id="word-options"></div>
+                <p id="reading-feedback" class="feedback"></p>
+                <button class="next-btn hidden" id="reading-next" onclick="generateWordQuestion()">Următorul ➡️</button>
+            </div>
+        </section>
 
-  <!-- Secțiunea 2: Jocuri -->
-  <section id="jocuri" class="screen hidden">
-    <h2>Joc de potrivire</h2>
-    <p>Alege imaginea corectă pentru cuvânt:</p>
-    <p id="word">pisică</p>
-    <div class="cards">
-      <button class="card option" onclick="checkAnswer('pisică', 'pisică')">🐱</button>
-      <button class="card option" onclick="checkAnswer('pisică', 'câine')">🐶</button>
-    </div>
-    <p id="feedback"></p>
-    <button class="back-btn" onclick="goHome()">Înapoi</button>
-  </section>
+        <section id="colors" class="game-section hidden">
+            <h2>Alege culoarea potrivită! 🎨</h2>
+            <div class="stars" id="colors-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="colors-progress" style="width: 0%">0/5</div>
+            </div>
+            <div class="game-area">
+                <div class="color-box" id="color-box"></div>
+                <p class="big-text" id="color-question">Ce culoare este?</p>
+                <div class="options" id="color-options"></div>
+                <p id="colors-feedback" class="feedback"></p>
+                <button class="next-btn hidden" id="colors-next" onclick="generateColorQuestion()">Următorul ➡️</button>
+            </div>
+        </section>
 
-  <!-- Secțiunea 3: Emoții -->
-  <section id="emotii" class="screen hidden">
-    <h2>Cum mă simt?</h2>
-    <div class="cards">
-      <button class="card" onclick="speak(event, 'Mă simt fericit')">
-        😀
-        <p>Fericit</p>
-      </button>
-      <button class="card" onclick="speak(event, 'Mă simt trist')">
-        😢
-        <p>Trist</p>
-      </button>
-      <button class="card" onclick="speak(event, 'Mă simt nervos')">
-        😡
-        <p>Nervos</p>
-      </button>
-      <button class="card" onclick="speak(event, 'Mă simt speriat')">
-        😰
-        <p>Speriat</p>
-      </button>
-    </div>
-    <button class="back-btn" onclick="goHome()">Înapoi</button>
-  </section>
+    </main>
 
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
