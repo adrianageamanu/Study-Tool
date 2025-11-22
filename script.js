@@ -613,6 +613,13 @@ function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawingPoints = [];
     document.getElementById("accuracy-display").classList.add("hidden");
+    
+    // 🔥 important: regenerăm template-ul pentru litera curentă
+    drawLetterTemplate(currentLetter.char);
+
+    // 🔥 resetăm feedback-ul
+    document.getElementById("writing-feedback").innerText = "";
+    document.getElementById("writing-feedback").className = "feedback";
 }
 
 function showHint() {
@@ -667,53 +674,43 @@ function resamplePoints(points, count) {
 function calculateAccuracy() {
     if (drawingPoints.length < 10) return 0;
 
-    const sampleCanvas = Math.max(canvas.width, canvas.height);
+    // Toleranță moderată
+    const tolerance = 40;
 
-    // 1. Validity: punctele sunt pe contur?
-    let valid = 0;
+    // 1. COVERAGE (60%)
+    let hitCount = 0;
+    for (let t of templatePoints) {
+        for (let p of drawingPoints) {
+            if (euclideanDistance(t, p) < tolerance) {
+                hitCount++;
+                break;
+            }
+        }
+    }
+    let coverageScore = (hitCount / templatePoints.length) * 100;
+    coverageScore = Math.min(100, coverageScore);
+
+    // 2. MEAN DISTANCE TO TEMPLATE (40%)
+    let totalDist = 0;
+    let count = 0;
+
     for (let p of drawingPoints) {
         let minD = Infinity;
         for (let t of templatePoints) {
             const d = euclideanDistance(p, t);
             if (d < minD) minD = d;
         }
-        if (minD < 60) valid++;
+        totalDist += Math.min(minD, tolerance * 2);
+        count++;
     }
-    const validityScore = (valid / drawingPoints.length) * 100;
 
-    // 2. Coverage: cât din literă a fost atinsă?
-    let covered = 0;
-    for (let t of templatePoints) {
-        for (let p of drawingPoints) {
-            if (euclideanDistance(t, p) < 55) {
-                covered++;
-                break;
-            }
-        }
-    }
-    let coverageScore = (covered / templatePoints.length) * 100;
-    coverageScore = Math.min(100, coverageScore * 1.1);
+    let avgDist = totalDist / count;
+    let distanceScore = Math.max(0, 100 - (avgDist / (tolerance * 2)) * 100);
 
-    // 3. Form similarity (simplificat)
-    const sampleDraw = resamplePoints(drawingPoints, 40);
-    const sampleTemp = resamplePoints(templatePoints, 40);
+    // SCOR FINAL
+    let finalScore = coverageScore * 0.6 + distanceScore * 0.4;
 
-    let sum = 0;
-    for (let i = 0; i < sampleDraw.length; i++) {
-        sum += euclideanDistance(sampleDraw[i], sampleTemp[i]);
-    }
-    const avg = sum / sampleDraw.length;
-    const formScore = Math.max(0, 100 - (avg / sampleCanvas) * 150);
-
-    // SCOR FINAL PONDERAT
-    let finalScore =
-        validityScore * 0.20 +
-        coverageScore * 0.45 +
-        formScore * 0.35;
-
-    if (coverageScore > 70) finalScore += 10;
-
-    return Math.min(100, Math.max(0, finalScore));
+    return Math.round(Math.min(100, Math.max(0, finalScore)));
 }
 
 function checkWriting() {
@@ -825,3 +822,31 @@ function showCompletion(module) {
         }
     }, 3000);
 }
+
+// ==========================================
+// INIT APP (BUTONALE + EVENIMENTE + MICROFON)
+// ==========================================
+
+window.addEventListener("load", () => {
+    // Buton HOME
+    document.getElementById("home-btn").addEventListener("click", () => {
+        showSection("menu");
+    });
+
+    // Cardurile din meniu
+    document.querySelectorAll(".card").forEach(card => {
+        card.addEventListener("click", () => {
+            const module = card.dataset.module;
+            startModule(module);
+        });
+    });
+
+    // Butoane NEXT din toate modulele
+    document.getElementById("math-next").addEventListener("click", generateMathQuestion);
+    document.getElementById("reading-next").addEventListener("click", generateWordQuestion);
+    document.getElementById("colors-next").addEventListener("click", generateColorQuestion);
+    document.getElementById("writing-next").addEventListener("click", generateWritingExercise);
+
+    // Microfon culori
+    setupSpeechRecognition();
+});
