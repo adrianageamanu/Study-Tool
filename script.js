@@ -51,14 +51,14 @@ let soundEnabled = true;
             }
         }
 
-    function resetScores() {
+      function resetScores() {
     mathScore = 0;
     readingScore = 0;
     colorsScore = 0;
 
     updateProgress('math', 0);
     updateProgress('reading', 0);
-    updateProgress('colors', 0);
+    updateProgress('colors', 0, colors.length);
 
     updateStars('math', 0);
     updateStars('reading', 0);
@@ -262,7 +262,8 @@ const colors = [
 let remainingColors = shuffle([...colors]);  // listă amestecată
 
        function generateColorQuestion() {
-    if (colorsScore >= maxQuestions) {
+            const maxColorQuestions = colors.length;
+    if (colorsScore >= maxColorQuestions) {
         showCompletion('colors');
         return;
     }
@@ -317,7 +318,7 @@ let remainingColors = shuffle([...colors]);  // listă amestecată
         feedback.innerText = `🎉 Minunat! Este ${currentColor.sound}!`;
         speak(`Bravo! Da, este ${currentColor.sound}!`);
         colorsScore++;
-        updateProgress('colors', colorsScore);
+        updateProgress('colors', colorsScore, colors.length);
         updateStars('colors', colorsScore);
         showCelebration('🎨');
         document.getElementById('colors-next').classList.remove('hidden');
@@ -394,13 +395,14 @@ window.addEventListener('load', () => {
     setupSpeechRecognition();
 });
 
-        // UTILITĂȚI
-        function updateProgress(module, score) {
-            const progressBar = document.getElementById(`${module}-progress`);
-            const percentage = (score / maxQuestions) * 100;
-            progressBar.style.width = percentage + '%';
-            progressBar.innerText = `${score}/${maxQuestions}`;
-        }
+function updateProgress(module, score, max) {
+    const progressBar = document.getElementById(`${module}-progress`);
+    const maxValue = max ?? maxQuestions; // dacă nu dai max, folosește globalul
+
+    const percentage = (score / maxValue) * 100;
+    progressBar.style.width = percentage + '%';
+    progressBar.innerText = `${score}/${maxValue}`;
+}
 
         function updateStars(module, score) {
             const starsContainer = document.getElementById(`${module}-stars`);
