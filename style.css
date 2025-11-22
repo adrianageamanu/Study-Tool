@@ -262,10 +262,20 @@ button:active {
     background: #ffffff;
 }
 
-#writing-canvas, #template-canvas {
+#template-canvas {
     position: absolute;
     top: 0;
     left: 0;
+    z-index: 1;
+    pointer-events: none; /* 🔥 EXTREM DE IMPORTANT */
+}
+
+#writing-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2; /* 🔥 canvasul de scris trebuie să fie deasupra */
+    cursor: crosshair;
 }
 
 /* NEXT BUTTON */

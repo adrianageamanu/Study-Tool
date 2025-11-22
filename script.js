@@ -665,17 +665,25 @@ function drawLetterTemplate(letter) {
 
 function startDrawing(e) {
     isDrawing = true;
+
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
 
     ctx.beginPath();
     ctx.moveTo(x, y);
+
     drawingPoints.push({ x, y });
 }
 
 function draw(e) {
     if (!isDrawing) return;
+
+    // dacă e mouse și nu este apăsat, oprim desenul
+    if (e.buttons !== undefined && e.buttons !== 1) {
+        isDrawing = false;
+        return;
+    }
 
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
@@ -688,6 +696,7 @@ function draw(e) {
 
     ctx.lineTo(x, y);
     ctx.stroke();
+
     drawingPoints.push({ x, y });
 }
 
