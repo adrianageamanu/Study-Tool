@@ -10,51 +10,73 @@
 
     <header>
         <button id="home-btn" onclick="showSection('menu')">🏠 Acasă</button>
-        <h1>Învață cu Bucurie</h1>
+        <h1>Învață cu Bucurie ✨</h1>
         <button id="tts-toggle" onclick="toggleSound()">🔊 Sunet: ON</button>
     </header>
 
     <main id="app-container">
         
         <section id="menu" class="active-section">
-            <h2>Ce vrei să facem azi?</h2>
             <div class="card-container">
                 <div class="card" onclick="startModule('math')">
-                    <div class="icon">1+2</div>
+                    <div class="icon">🔢</div>
                     <h3>Matematică</h3>
+                    <p>Învață să numeri!</p>
                 </div>
                 <div class="card" onclick="startModule('reading')">
-                    <div class="icon">ABC</div>
+                    <div class="icon">📚</div>
                     <h3>Cuvinte</h3>
+                    <p>Citește și învață!</p>
                 </div>
                 <div class="card" onclick="startModule('colors')">
                     <div class="icon">🎨</div>
                     <h3>Culori</h3>
+                    <p>Descoperă culorile!</p>
                 </div>
             </div>
         </section>
 
         <section id="math" class="game-section hidden">
-            <h2>Adună numerele!</h2>
+            <h2>Adună numerele! 🔢</h2>
+            <div class="stars" id="math-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="math-progress" style="width: 0%">0/5</div>
+            </div>
             <div class="game-area">
-                <div id="math-question" class="big-text">2 + 3 = ?</div>
-                <div class="options">
-                    <button onclick="checkMath(4)">4</button>
-                    <button onclick="checkMath(5)">5</button>
-                    <button onclick="checkMath(6)">6</button>
-                </div>
+                <div id="math-question" class="big-text"></div>
+                <div class="options" id="math-options"></div>
                 <p id="math-feedback" class="feedback"></p>
+                <button class="next-btn hidden" id="math-next" onclick="generateMathQuestion()">Următorul ➡️</button>
             </div>
         </section>
 
         <section id="reading" class="game-section hidden">
-            <h2>Citește cuvintele</h2>
-            <p>Aici va fi jocul de cuvinte...</p>
+            <h2>Citește cuvântul! 📚</h2>
+            <div class="stars" id="reading-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="reading-progress" style="width: 0%">0/5</div>
+            </div>
+            <div class="game-area">
+                <div id="word-display" class="word-display"></div>
+                <div class="options" id="word-options"></div>
+                <p id="reading-feedback" class="feedback"></p>
+                <button class="next-btn hidden" id="reading-next" onclick="generateWordQuestion()">Următorul ➡️</button>
+            </div>
         </section>
 
         <section id="colors" class="game-section hidden">
-            <h2>Alege culoarea</h2>
-            <p>Aici va fi jocul de culori...</p>
+            <h2>Alege culoarea potrivită! 🎨</h2>
+            <div class="stars" id="colors-stars"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="colors-progress" style="width: 0%">0/5</div>
+            </div>
+            <div class="game-area">
+                <div class="color-box" id="color-box"></div>
+                <p class="big-text" id="color-question">Ce culoare este?</p>
+                <div class="options" id="color-options"></div>
+                <p id="colors-feedback" class="feedback"></p>
+                <button class="next-btn hidden" id="colors-next" onclick="generateColorQuestion()">Următorul ➡️</button>
+            </div>
         </section>
 
     </main>
