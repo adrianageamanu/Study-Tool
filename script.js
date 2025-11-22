@@ -8,12 +8,14 @@ let colorsScore = 0;
 let writingScore = 0;
 
 const maxQuestions = 5; // pentru reading, colors, writing
+const maxReadingQuestions = 10;
 
 let currentMathAnswer, currentWord, currentColor, currentLetter;
 let mathInputMode = "buttons"; // 'buttons' | 'input'
 
 // Culori (fără repetiție)
 let remainingColors = [];
+let remainingWords = [];
 
 // Voice TTS
 let selectedVoice = null;
@@ -105,8 +107,10 @@ function resetScores() {
     updateStars("colors", 0);
     updateStars("writing", 0);
 
-    remainingColors = shuffle([...colors]);
-    availableLetters = [...letters];
+remainingColors = shuffle([...colors]);
+availableLetters = [...letters];
+remainingWords = shuffle([...words]);   // 🔹 le amestecăm și le folosim fără repetiție
+
 }
 
 // ==========================================
@@ -273,16 +277,68 @@ function checkMath(answer) {
 const words = [
     { word: "CASĂ", image: "🏠", sound: "casă" },
     { word: "PISICĂ", image: "🐱", sound: "pisică" },
-    { word: "FLOARE", image: "🌸", sound: "floare" },
-    { word: "SOARE", image: "☀️", sound: "soare" },
-    { word: "MAȘINĂ", image: "🚗", sound: "mașină" },
-    { word: "CARTE", image: "📖", sound: "carte" },
+    { word: "CÂINE", image: "🐶", sound: "câine" },
     { word: "MERE", image: "🍎", sound: "mere" },
-    { word: "COPAC", image: "🌳", sound: "copac" }
+    { word: "PARĂ", image: "🍐", sound: "pară" },
+    { word: "BANANĂ", image: "🍌", sound: "banană" },
+    { word: "CARTE", image: "📖", sound: "carte" },
+    { word: "SOARE", image: "☀️", sound: "soare" },
+    { word: "LUNĂ", image: "🌙", sound: "lună" },
+    { word: "STELE", image: "⭐", sound: "stele" },
+    { word: "COPAC", image: "🌳", sound: "copac" },
+    { word: "FLOARE", image: "🌸", sound: "floare" },
+    { word: "FRUNZĂ", image: "🍃", sound: "frunză" },
+    { word: "ZĂPADĂ", image: "❄️", sound: "zăpadă" },
+    { word: "PLAJĂ", image: "🏖️", sound: "plajă" },
+    { word: "MUNTE", image: "⛰️", sound: "munte" },
+    { word: "MAȘINĂ", image: "🚗", sound: "mașină" },
+    { word: "AUTOBUZ", image: "🚌", sound: "autobuz" },
+    { word: "TREN", image: "🚆", sound: "tren" },
+    { word: "AVION", image: "✈️", sound: "avion" },
+    { word: "BARCĂ", image: "⛵", sound: "barcă" },
+
+    { word: "OU", image: "🥚", sound: "ou" },
+    { word: "LAPTE", image: "🥛", sound: "lapte" },
+    { word: "PÂINE", image: "🍞", sound: "pâine" },
+    { word: "BRÂNZĂ", image: "🧀", sound: "brânză" },
+    { word: "PEȘTE", image: "🐟", sound: "pește" },
+    { word: "APA", image: "💧", sound: "apă" },
+
+    { word: "BEBELUȘ", image: "👶", sound: "bebeluş" },
+    { word: "FATĂ", image: "👧", sound: "fată" },
+    { word: "BĂIAT", image: "👦", sound: "băiat" },
+    { word: "FEMEIE", image: "👩", sound: "femeie" },
+    { word: "BARBAT", image: "👨", sound: "barbat" },
+
+    { word: "MINGE", image: "⚽", sound: "minge" },
+    { word: "PAPUC", image: "👟", sound: "papuc" },
+    { word: "PĂLĂRIE", image: "👒", sound: "pălărie" },
+    { word: "ROCHIE", image: "👗", sound: "rochie" },
+    { word: "CEAS", image: "⌚", sound: "ceas" },
+
+    { word: "CHEIE", image: "🔑", sound: "cheie" },
+    { word: "UȘĂ", image: "🚪", sound: "ușă" },
+    { word: "PAT", image: "🛏️", sound: "pat" },
+    { word: "SCAUN", image: "🪑", sound: "scaun" },
+
+    { word: "TELEFON", image: "📱", sound: "telefon" },
+    { word: "TELEVIZOR", image: "📺", sound: "televizor" },
+    { word: "COMPUTER", image: "💻", sound: "computer" },
+
+    { word: "CIOCOLATĂ", image: "🍫", sound: "ciocolată" },
+    { word: "PRĂJITURĂ", image: "🧁", sound: "prăjitură" }
 ];
 
 function generateWordQuestion() {
-    if (readingScore >= maxQuestions) return showCompletion("reading");
+    // dacă am ajuns la 10 răspunsuri corecte → tură terminată
+    if (readingScore >= maxReadingQuestions) {
+        return showCompletion("reading");
+    }
+
+    // dacă nu mai avem cuvinte rămase → terminăm tura
+    if (!remainingWords.length) {
+        return showCompletion("reading");
+    }
 
     const fb = document.getElementById("reading-feedback");
     fb.innerText = "";
@@ -290,7 +346,8 @@ function generateWordQuestion() {
 
     document.getElementById("reading-next").classList.add("hidden");
 
-    currentWord = words[Math.floor(Math.random() * words.length)];
+    // luăm următorul cuvânt din lista amestecată (fără repetiție)
+    currentWord = remainingWords.shift();
 
     document.getElementById("word-display").innerText = currentWord.word;
     speak(`Citește cuvântul: ${currentWord.sound}`);
@@ -311,21 +368,59 @@ function generateWordQuestion() {
 
 function checkWord(selected) {
     const fb = document.getElementById("reading-feedback");
+    const optionsContainer = document.getElementById("word-options");
+
+    // golim variantele de răspuns după alegere
+    if (optionsContainer) {
+        optionsContainer.innerHTML = "";
+    }
+
+    // găsim obiectul cuvântului ales
+    const chosenWord = words.find(w => w.word === selected) || null;
 
     if (selected === currentWord.word) {
+        // ✅ RĂSPUNS CORECT
         fb.className = "feedback success";
-        fb.innerText = `🎉 Este ${currentWord.sound}!`;
+        fb.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+                <div>🎉 Corect! Cuvântul este:</div>
+                <div style="font-size:3rem">${currentWord.image}</div>
+                <div style="font-weight:bold">${currentWord.sound}</div>
+            </div>
+        `;
         speak(`Bravo! Este ${currentWord.sound}!`);
+
         readingScore++;
         updateProgress("reading", readingScore);
         updateStars("reading", readingScore);
         showCelebration("📚");
         document.getElementById("reading-next").classList.remove("hidden");
-        document.getElementById("word-options").innerHTML = "";
     } else {
+        // ❌ RĂSPUNS GREȘIT – arătăm ce a ales și care era corect
         fb.className = "feedback error";
-        fb.innerText = "💪 Mai încearcă!";
-        speak("Mai încearcă încă o dată!");
+
+        const chosenLabel = chosenWord
+            ? `${chosenWord.sound}`
+            : selected;
+
+        fb.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+                <div>❌ Ai ales:</div>
+                ${
+                    chosenWord
+                        ? `<div style="font-size:3rem">${chosenWord.image}</div>
+                           <div style="font-weight:bold">${chosenWord.sound}</div>`
+                        : `<div style="font-weight:bold">${chosenLabel}</div>`
+                }
+                <div style="margin-top:8px">✅ Cuvântul corect este:</div>
+                <div style="font-size:3rem">${currentWord.image}</div>
+                <div style="font-weight:bold">${currentWord.sound}</div>
+            </div>
+        `;
+
+        speak(`Nu e corect. Ai ales ${chosenLabel}, dar cuvântul corect este ${currentWord.sound}.`);
+
+        document.getElementById("reading-next").classList.remove("hidden");
     }
 }
 
@@ -829,19 +924,24 @@ function updateProgress(module, score) {
     const el = document.getElementById(`${module}-progress`);
     if (!el) return;
 
-    if (module === "math") {
-        el.style.width = "100%";
-        el.innerText = score > 0 ? `Întrebarea #${score}` : "Start!";
-    } else if (module === "colors") {
-        const total = colors.length;
-        const pct = (score / total) * 100;
-        el.style.width = pct + "%";
-        el.innerText = `${score}/${total}`;
-    } else {
-        const pct = (score / maxQuestions) * 100;
-        el.style.width = pct + "%";
-        el.innerText = `${score}/${maxQuestions}`;
-    }
+if (module === "math") {
+    el.style.width = "100%";
+    el.innerText = score > 0 ? `Întrebarea #${score}` : "Start!";
+} else if (module === "colors") {
+    const total = colors.length;
+    const pct = (score / total) * 100;
+    el.style.width = pct + "%";
+    el.innerText = `${score}/${total}`;
+} else if (module === "reading") {
+    const pct = (score / maxReadingQuestions) * 100;
+    el.style.width = pct + "%";
+    el.innerText = `${score}/${maxReadingQuestions}`;
+} else {
+    const pct = (score / maxQuestions) * 100;
+    el.style.width = pct + "%";
+    el.innerText = `${score}/${maxQuestions}`;
+}
+
 }
 
 function updateStars(module, score) {
