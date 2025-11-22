@@ -1,0 +1,106 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #e3f2fd;
+  text-align: center;
+}
+
+header {
+  background-color: #64b5f6;
+  color: white;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 1.8rem;
+}
+
+main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+}
+
+.tile {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 1rem;
+  width: 250px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.tile-emoji {
+  font-size: 3rem;
+  display: block;
+}
+
+.tile h2 {
+  font-size: 1.4rem;
+  margin: 0.5rem 0;
+}
+
+.voice-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.screen {
+  padding: 1rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding: 1rem;
+  min-width: 120px;
+  font-size: 1.2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: none;
+}
+
+.card p {
+  margin-top: 0.5rem;
+}
+
+.back-btn {
+  margin-top: 1.5rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 20px;
+  border: none;
+  background-color: #64b5f6;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+#word {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+#feedback {
+  font-size: 1.3rem;
+  margin-top: 1rem;
+}
