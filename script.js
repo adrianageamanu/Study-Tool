@@ -5,6 +5,23 @@ let soundEnabled = true;
         const maxQuestions = 5;
         let currentMathAnswer, currentWord, currentColor;
 
+    function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+
+    function normalizeText(str) {
+        return str
+            .toLowerCase()
+            .normalize("NFD")               // separă literele de diacritice
+            .replace(/[\u0300-\u036f]/g, "") // șterge diacriticele
+            .trim();
+    }
+
         // NAVIGARE
         function showSection(sectionId) {
             document.querySelectorAll('.game-section, #menu').forEach(sec => sec.classList.add('hidden'));
@@ -34,28 +51,83 @@ let soundEnabled = true;
             }
         }
 
-        function resetScores() {
-            mathScore = 0;
-            readingScore = 0;
-            colorsScore = 0;
-            updateProgress('math', 0);
-            updateProgress('reading', 0);
-            updateProgress('colors', 0);
-            updateStars('math', 0);
-            updateStars('reading', 0);
-            updateStars('colors', 0);
-        }
+    function resetScores() {
+    mathScore = 0;
+    readingScore = 0;
+    colorsScore = 0;
+
+    updateProgress('math', 0);
+    updateProgress('reading', 0);
+    updateProgress('colors', 0);
+
+    updateStars('math', 0);
+    updateStars('reading', 0);
+    updateStars('colors', 0);
+
+    // reconstruim lista culorilor într-o ordine NOUĂ random
+    remainingColors = shuffle([...colors]);
+}
+
 
         // TEXT-TO-SPEECH
-        function speak(text) {
-            if (!soundEnabled) return;
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ro-RO';
-            utterance.rate = 0.85;
-            utterance.pitch = 1.2;
-            window.speechSynthesis.speak(utterance);
-        }
+ let selectedVoice = null;
+
+// nume de voci preferate (poți ajusta după ce vezi ce ai în consolă)
+const preferredVoices = [
+    "Microsoft Andrei",         // ex. Edge pe Windows
+    "Microsoft Irina",
+    "Google ro-RO",             // ex. Chrome
+    "Google Romanian",
+];
+
+// încarcă și alege cea mai bună voce românească disponibilă
+function loadVoices() {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || !voices.length) return;
+
+    // 1. încercăm vocile preferate după nume
+    let voice = null;
+    for (const name of preferredVoices) {
+        voice = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+        if (voice) break;
+    }
+
+    // 2. dacă nu găsim după nume, alegem orice voce cu ro-RO
+    if (!voice) {
+        voice = voices.find(v => v.lang === "ro-RO") ||
+                voices.find(v => v.lang && v.lang.startsWith("ro"));
+    }
+
+    selectedVoice = voice || null;
+
+    console.log("Toate vocile disponibile:");
+    voices.forEach(v => console.log(`${v.name} (${v.lang})`));
+    console.log("Vocea selectată:", selectedVoice ? `${selectedVoice.name} (${selectedVoice.lang})` : "nimic");
+}
+
+// vocile se încarcă asincron
+window.speechSynthesis.onvoiceschanged = loadVoices;
+
+function speak(text) {
+    if (!soundEnabled) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ro-RO";
+
+    // mai lent și mai „liniștit” pentru copii
+    utterance.rate = 0.85;  // mai cursiv
+    utterance.pitch = 1.0;  // ton normal
+    utterance.volume = 1.0;
+
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+}
+
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
@@ -172,62 +244,155 @@ let soundEnabled = true;
         }
 
         // CULORI
-        const colors = [
-            {name: 'ROȘU', hex: '#FF0000', sound: 'roșu'},
-            {name: 'ALBASTRU', hex: '#0000FF', sound: 'albastru'},
-            {name: 'VERDE', hex: '#00FF00', sound: 'verde'},
-            {name: 'GALBEN', hex: '#FFFF00', sound: 'galben'},
-            {name: 'PORTOCALIU', hex: '#FF8800', sound: 'portocaliu'},
-            {name: 'ROZ', hex: '#FF69B4', sound: 'roz'},
-            {name: 'VIOLET', hex: '#9370DB', sound: 'violet'}
-        ];
+const colors = [
+    { name: 'ROȘU',      hex: '#FF0000', sound: 'roșu' },
+    { name: 'ALBASTRU',  hex: '#0000FF', sound: 'albastru' },
+    { name: 'VERDE',     hex: '#00FF00', sound: 'verde' },
+    { name: 'GALBEN',    hex: '#FFFF00', sound: 'galben' },
+    { name: 'PORTOCALIU',hex: '#FF8800', sound: 'portocaliu' },
+    { name: 'ROZ',       hex: '#FF69B4', sound: 'roz' },
+    { name: 'VIOLET',    hex: '#9370DB', sound: 'violet' },
+    { name: 'NEGRU',     hex: '#000000', sound: 'negru' },
+    { name: 'ALB',       hex: '#FFFFFF', sound: 'alb' },
+    { name: 'GRI',       hex: '#808080', sound: 'gri' },
+    { name: 'MARO',      hex: '#8B4513', sound: 'maro' }
+];
 
-        function generateColorQuestion() {
-            if (colorsScore >= maxQuestions) {
-                showCompletion('colors');
-                return;
-            }
+// listă de culori rămase pentru întrebări (fără repetiție)
+let remainingColors = shuffle([...colors]);  // listă amestecată
 
-            document.getElementById('colors-feedback').innerText = '';
-            document.getElementById('colors-feedback').className = 'feedback';
-            document.getElementById('colors-next').classList.add('hidden');
+       function generateColorQuestion() {
+    if (colorsScore >= maxQuestions) {
+        showCompletion('colors');
+        return;
+    }
 
-            currentColor = colors[Math.floor(Math.random() * colors.length)];
-            document.getElementById('color-box').style.backgroundColor = currentColor.hex;
-            speak(`Ce culoare este aceasta?`);
+    const feedback = document.getElementById('colors-feedback');
+    const nextBtn = document.getElementById('colors-next');
 
-            const options = [currentColor];
-            const otherColors = colors.filter(c => c.name !== currentColor.name);
-            while (options.length < 3) {
-                const random = otherColors[Math.floor(Math.random() * otherColors.length)];
-                if (!options.includes(random)) options.push(random);
-            }
-            options.sort(() => Math.random() - 0.5);
+    feedback.innerText = '';
+    feedback.className = 'feedback';
+    nextBtn.classList.add('hidden');
 
-            document.getElementById('color-options').innerHTML = options.map(opt => 
-                `<button onclick="checkColor('${opt.name}')">${opt.name}</button>`
-            ).join('');
+    // dacă am epuizat toate culorile → refacem lista în ordine random
+    if (remainingColors.length === 0) {
+        remainingColors = shuffle([...colors]);
+    }
+
+    // luăm PRIMA culoare din lista random și o scoatem din ea
+    currentColor = remainingColors.shift();
+
+    document.getElementById('color-box').style.backgroundColor = currentColor.hex;
+    speak(`Ce culoare este aceasta?`);
+
+    // generăm butoanele (aleatoriu)
+    const options = [currentColor];
+    const otherColors = colors.filter(c => c.name !== currentColor.name);
+
+    while (options.length < 3) {
+        const random = otherColors[Math.floor(Math.random() * otherColors.length)];
+        if (!options.includes(random)) options.push(random);
+    }
+
+    options.sort(() => Math.random() - 0.5);
+
+    document.getElementById('color-options').innerHTML = options.map(opt =>
+        `<button onclick="checkColor('${opt.name}')">${opt.name}</button>`
+    ).join('');
+}
+
+
+    function checkColor(selected) {
+        // folosim aceeași validare și pentru butoane, și pentru voce
+        validateColorAnswer(selected);
+    }
+
+    function validateColorAnswer(answerRaw) {
+    const feedback = document.getElementById('colors-feedback');
+    const normalizedSelected = normalizeText(answerRaw);
+    const normalizedCorrect = normalizeText(currentColor.name);
+
+    if (normalizedSelected === normalizedCorrect) {
+        feedback.className = 'feedback success';
+        feedback.innerText = `🎉 Minunat! Este ${currentColor.sound}!`;
+        speak(`Bravo! Da, este ${currentColor.sound}!`);
+        colorsScore++;
+        updateProgress('colors', colorsScore);
+        updateStars('colors', colorsScore);
+        showCelebration('🎨');
+        document.getElementById('colors-next').classList.remove('hidden');
+        document.getElementById('color-options').innerHTML = '';
+    } else {
+        feedback.className = 'feedback error';
+        feedback.innerText = "💪 Mai gândește-te!";
+        speak("Mai încearcă!");
+    }
+}
+    let recognition;
+let isListening = false;
+
+function setupSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.warn("Acest browser nu suportă SpeechRecognition.");
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'ro-RO';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        // folosim aceeași logică de verificare ca la butoane
+        validateColorAnswer(transcript);
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Eroare recunoaștere voce:', event.error);
+        speak("Nu am înțeles bine. Poți repeta sau poți alege culoarea din butoane.");
+        isListening = false;
+        updateVoiceButton();
+    };
+
+    recognition.onend = () => {
+        isListening = false;
+        updateVoiceButton();
+    };
+}
+
+function startColorVoiceInput() {
+    if (!recognition) {
+        setupSpeechRecognition();
+        if (!recognition) {
+            alert("Din păcate, acest browser nu suportă recunoaștere vocală.");
+            return;
         }
+    }
 
-        function checkColor(selected) {
-            const feedback = document.getElementById('colors-feedback');
-            
-            if (selected === currentColor.name) {
-                feedback.className = 'feedback success';
-                feedback.innerText = `🎉 Minunat! Este ${currentColor.sound}!`;
-                speak(`Bravo! Da, este ${currentColor.sound}!`);
-                colorsScore++;
-                updateProgress('colors', colorsScore);
-                updateStars('colors', colorsScore);
-                showCelebration('🎨');
-                document.getElementById('colors-next').classList.remove('hidden');
-                document.getElementById('color-options').innerHTML = '';
-            } else {
-                feedback.className = 'feedback error';
-                feedback.innerText = "💪 Mai gândește-te!";
-                speak("Mai încearcă!");
-            }
-        }
+    if (!isListening) {
+        isListening = true;
+        updateVoiceButton();
+        speak("Spune numele culorii.");
+        recognition.start();
+    } else {
+        recognition.stop();
+        isListening = false;
+        updateVoiceButton();
+    }
+}
+
+function updateVoiceButton() {
+    const btn = document.getElementById('voice-btn');
+    if (!btn) return;
+    btn.innerText = isListening ? "⏹ Oprește microfonul" : "🎤 Spune culoarea";
+}
+
+// pornește setup-ul când se încarcă pagina
+window.addEventListener('load', () => {
+    setupSpeechRecognition();
+});
 
         // UTILITĂȚI
         function updateProgress(module, score) {
