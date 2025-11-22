@@ -833,6 +833,9 @@ window.addEventListener("load", () => {
         showSection("menu");
     });
 
+    // Buton SUNET
+    document.getElementById("tts-toggle").addEventListener("click", toggleSound);
+
     // Cardurile din meniu
     document.querySelectorAll(".card").forEach(card => {
         card.addEventListener("click", () => {
